@@ -64,65 +64,9 @@ fn render_status_button<'a>() -> Element<'a, Message> {
         .into()
 }
 
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::State;
-    use std::time::Duration;
-    use crate::channel::ChannelMessage;
-
-    fn dummy_state() -> State {
-        State {
-            latest_baton_send: Some(123.456.to_string()),
-            active_baton_connection: true,
-            connection_status: Some(ChannelMessage::Connect),
-            elapsed_time: Duration::from_secs(42),
-            ..Default::default()
-        }
-    }
-
-    #[test]
-    fn test_render_elapsed_time() {
-        let state = dummy_state();
-        let element = render_elapsed_time(&state);
-        let _: Element<Message> = element;
-    }
-
-    #[test]
-    fn test_baton_text_with_value() {
-        let state = dummy_state();
-        let element = baton_text(&state);
-        let _: Element<Message> = element;
-    }
-
-    #[test]
-    fn test_render_connection_text_connected() {
-        let state = dummy_state();
-        let element = render_connection_text(&state);
-        let _: Element<Message> = element;
-    }
-
-    #[test]
-    fn test_render_connection_text_disconnected() {
-        let mut state = dummy_state();
-        state.connection_status = None;
-        state.active_baton_connection = false;
-        let element = render_connection_text(&state);
-        let _: Element<Message> = element;
-    }
-
-    #[test]
-    fn test_render_status_button() {
-        let element = render_status_button();
-        let _: Element<Message> = element;
-    }
-
-    #[test]
-    fn test_full_view() {
-        let state = dummy_state();
-        let element = view(&state);
-        let _: Element<Message> = element;
-    }
-}
+/*
+We decided to not include unit tests from the UI, as our previous tests were just smoke tests 
+    (i.e. doing nothing the Rust static code analyzer wasn't already doing).
+If we have conditional UI elements being displayed, perhaps this could change, 
+    but since we are already testing state manipulation in the `update.rs` file, they seemed redundant.
+*/
