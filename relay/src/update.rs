@@ -56,3 +56,7 @@ pub(crate) fn update(state: &mut State, message: Message) -> Task<Message> {
         _ => Task::none(),
     }
 }
+
+
+
+// Attempt to create unit tests for the update.rs file

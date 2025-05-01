@@ -37,3 +37,7 @@ pub(crate) fn view(state: &State) -> Element<Message> {
     ]
     .into()
 }
+
+
+
+// Attempt to create unit tests for the view.rs file
