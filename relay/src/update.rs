@@ -7,7 +7,6 @@ use crate::{message::ToTcpThreadMessage, FromIpcThreadMessage, Message, State};
 pub(crate) fn update(state: &mut State, message: Message) -> Task<Message> {
     use Message as M;
 
-    #[allow(unreachable_patterns)]
     match message {
         M::Update => handle_update(state),
         M::WindowCloseRequest(id) => close_window(state, id),
@@ -26,7 +25,6 @@ pub(crate) fn update(state: &mut State, message: Message) -> Task<Message> {
             M::CardOpen => card_open(state),
             M::CardClose => card_close(state),
         M::TcpAddrFieldUpdate(addr) => tcp_addr_field_update(state, addr),
-        _ => Task::none(),
     }
 }
 
@@ -48,7 +46,6 @@ fn handle_update(state: &mut State) -> Task<Message> {
                     let _ = state.tcp_disconnect();
                     state.active_baton_connection = false;
                 }
-                // _ => (),
             }
         }
     }
