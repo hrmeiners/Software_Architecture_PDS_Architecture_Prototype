@@ -16,14 +16,16 @@ pub(crate) fn update(state: &mut State, message: Message) -> Task<Message> {
         M::ConnectTcp => tcp_connect_message(state),
         M::DisconnectTcp => tcp_disconnect_message(state),
         // Toggle messages for GUI XML generator
-            M::AltitudeToggle(value) => toggle_state(&mut state.altitude_toggle, value),
-            M::AirspeedToggle(value) => toggle_state(&mut state.airspeed_toggle, value),
-            M::VerticalAirspeedToggle(value) => toggle_state(&mut state.vertical_airspeed_toggle, value),
-            M::HeadingToggle(value) => toggle_state(&mut state.heading_toggle, value),
+        M::AltitudeToggle(value) => toggle_state(&mut state.altitude_toggle, value),
+        M::AirspeedToggle(value) => toggle_state(&mut state.airspeed_toggle, value),
+        M::VerticalAirspeedToggle(value) => {
+            toggle_state(&mut state.vertical_airspeed_toggle, value)
+        }
+        M::HeadingToggle(value) => toggle_state(&mut state.heading_toggle, value),
         M::CreateXMLFile => create_xml_file(state),
         // Card Open/Close messages for GUI pop-up-card window
-            M::CardOpen => card_open(state),
-            M::CardClose => card_close(state),
+        M::CardOpen => card_open(state),
+        M::CardClose => card_close(state),
         M::TcpAddrFieldUpdate(addr) => tcp_addr_field_update(state, addr),
     }
 }
@@ -243,107 +245,182 @@ fn tcp_addr_field_update(state: &mut State, addr: String) -> Task<Message> {
     Task::none()
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
 
+    #[test]
+    fn test_handle_update() {
+        let state = State {
+            ..Default::default()
+        };
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::ChannelMessage;
-//     use std::sync::mpsc;
-//     use std::time::Duration;
+        todo!()
+    }
 
-//     #[test]
-//     fn test_handle_baton_msg_data() {
-//         let (txx, rxx) = mpsc::channel();
-//         txx.send(IpcThreadMessage::BatonData("test".into()))
-//             .unwrap();
+    #[test]
+    fn test_handle_connect_message_discon() {
+        let mut state = State {
+            tcp_connected: true,
+            ..Default::default()
+        };
 
-//         let mut state = State {
-//             elapsed_time: Duration::ZERO,
-//             ipc_conn_thread_handle: None,
-//             tx_kill: None,
-//             rx_baton: Some(rxx),
-//             latest_baton_send: None,
-//             recv: None,
-//             connection_status: None,
-//             active_baton_connection: false,
-//         };
+        let _ = handle_connect_message(&mut state);
+        assert_eq!(state.tcp_connected, false);
+        todo!()
+    }
 
-//         let _ = handle_baton_msg(&mut state);
+    // for these indented tests, i need to figure out how the bichannel stuff works better
+    // i think I must create a dummy tcp connection somehow?
+    #[test]
+    fn test_handle_connect_message_con() {
+        let mut state = State {
+            tcp_connected: false,
+            ..Default::default()
+        };
 
-//         assert_eq!(state.latest_baton_send, Some("test".into()));
-//         assert!(state.active_baton_connection);
-//     }
+        //let _ = handle_connect_message(&mut state);
+        //assert_eq!(state.tcp_connected, true);
+        todo!()
+    }
 
-//     #[test]
-//     fn test_handle_baton_msg_shutdown() {
-//         let (txx, rxx) = mpsc::channel();
-//         txx.send(IpcThreadMessage::BatonShutdown).unwrap();
+    #[test]
+    fn test_ipc_connect_message() {
+        todo!()
+    }
 
-//         let mut state = State {
-//             elapsed_time: Duration::ZERO,
-//             ipc_conn_thread_handle: None,
-//             tx_kill: None,
-//             rx_baton: Some(rxx),
-//             latest_baton_send: None,
-//             recv: None,
-//             connection_status: None,
-//             active_baton_connection: true,
-//         };
+    #[test]
+    fn test_ipc_disconnect_message() {
+        todo!()
+    }
 
-//         let _ = handle_baton_msg(&mut state);
+    #[test]
+    fn test_tcp_connect_message() {
+        todo!()
+    }
 
-//         assert!(!state.active_baton_connection);
-//     }
+    #[test]
+    fn test_tcp_disconnect_message() {
+        todo!()
+    }
 
-//     #[test]
-//     fn test_update_connection_status_connect() {
-//         let (send, recv) = std::sync::mpsc::channel::<ChannelMessage>();
-//         let _ = send.send(ChannelMessage::Connect);
+    #[test]
+    fn test_toggle_state() {
+        todo!()
+    }
 
-//         let mut state = State {
-//             elapsed_time: Duration::ZERO,
-//             ipc_conn_thread_handle: None,
-//             tx_kill: None,
-//             rx_baton: None,
-//             latest_baton_send: None,
-//             recv: Some(recv),
-//             connection_status: None,
-//             active_baton_connection: false,
-//         };
+    #[test]
+    fn test_create_xml_file() {
+        todo!()
+    }
 
-//         let _ = update_connection_status(&mut state);
+    #[test]
+    fn test_card_open() {
+        todo!()
+    }
 
-//         // If you add the `PartialEq` trait to the `ChannelMessage` enum, you can directly assert_eq!(val, enum).
-//         match state.connection_status {
-//             Some(ChannelMessage::Connect) => assert!(true),
-//             _ => assert!(false),
-//         };
-//     }
+    #[test]
+    fn test_card_close() {
+        todo!()
+    }
 
-//     #[test]
-//     fn test_update_connection_status_disconnected() {
-//         let (send, recv) = std::sync::mpsc::channel::<ChannelMessage>();
-//         let _ = send.send(ChannelMessage::Disconnected);
+    #[test]
+    fn test_tcp_addr_field_update() {
+        todo!()
+    }
 
-//         let mut state = State {
-//             elapsed_time: Duration::ZERO,
-//             ipc_conn_thread_handle: None,
-//             tx_kill: None,
-//             rx_baton: None,
-//             latest_baton_send: None,
-//             recv: Some(recv),
-//             connection_status: None,
-//             active_baton_connection: false,
-//         };
+    // #[test]
+    // fn test_handle_baton_msg_data() {
+    //     let (txx, rxx) = mpsc::channel();
+    //     txx.send(IpcThreadMessage::BatonData("test".into()))
+    //         .unwrap();
 
-//         let _ = update_connection_status(&mut state);
+    //     let mut state = State {
+    //         elapsed_time: Duration::ZERO,
+    //         ipc_conn_thread_handle: None,
+    //         tx_kill: None,
+    //         rx_baton: Some(rxx),
+    //         latest_baton_send: None,
+    //         recv: None,
+    //         connection_status: None,
+    //         active_baton_connection: false,
+    //     };
 
-//         match state.connection_status {
-//             Some(ChannelMessage::Disconnected) => assert!(true),
-//             _ => assert!(false),
-//         };
-//     }
+    //     let _ = handle_baton_msg(&mut state);
 
-//     // Unable to test close_window() due to how the ICED gui closes the window.
-// }
+    //     assert_eq!(state.latest_baton_send, Some("test".into()));
+    //     assert!(state.active_baton_connection);
+    // }
+
+    // #[test]
+    // fn test_handle_baton_msg_shutdown() {
+    //     let (txx, rxx) = mpsc::channel();
+    //     txx.send(IpcThreadMessage::BatonShutdown).unwrap();
+
+    //     let mut state = State {
+    //         elapsed_time: Duration::ZERO,
+    //         ipc_conn_thread_handle: None,
+    //         tx_kill: None,
+    //         rx_baton: Some(rxx),
+    //         latest_baton_send: None,
+    //         recv: None,
+    //         connection_status: None,
+    //         active_baton_connection: true,
+    //     };
+
+    //     let _ = handle_baton_msg(&mut state);
+
+    //     assert!(!state.active_baton_connection);
+    // }
+
+    // #[test]
+    // fn test_update_connection_status_connect() {
+    //     let (send, recv) = std::sync::mpsc::channel::<ChannelMessage>();
+    //     let _ = send.send(ChannelMessage::Connect);
+
+    //     let mut state = State {
+    //         elapsed_time: Duration::ZERO,
+    //         ipc_conn_thread_handle: None,
+    //         tx_kill: None,
+    //         rx_baton: None,
+    //         latest_baton_send: None,
+    //         recv: Some(recv),
+    //         connection_status: None,
+    //         active_baton_connection: false,
+    //     };
+
+    //     let _ = update_connection_status(&mut state);
+
+    //     // If you add the `PartialEq` trait to the `ChannelMessage` enum, you can directly assert_eq!(val, enum).
+    //     match state.connection_status {
+    //         Some(ChannelMessage::Connect) => assert!(true),
+    //         _ => assert!(false),
+    //     };
+    // }
+
+    // #[test]
+    // fn test_update_connection_status_disconnected() {
+    //     let (send, recv) = std::sync::mpsc::channel::<ChannelMessage>();
+    //     let _ = send.send(ChannelMessage::Disconnected);
+
+    //     let mut state = State {
+    //         elapsed_time: Duration::ZERO,
+    //         ipc_conn_thread_handle: None,
+    //         tx_kill: None,
+    //         rx_baton: None,
+    //         latest_baton_send: None,
+    //         recv: Some(recv),
+    //         connection_status: None,
+    //         active_baton_connection: false,
+    //     };
+
+    //     let _ = update_connection_status(&mut state);
+
+    //     match state.connection_status {
+    //         Some(ChannelMessage::Disconnected) => assert!(true),
+    //         _ => assert!(false),
+    //     };
+    // }
+
+    // Unable to test close_window() due to how the ICED gui closes the window.
+}

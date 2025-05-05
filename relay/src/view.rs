@@ -179,10 +179,9 @@ fn xml_downloader_popup(state: &State) -> UIElement {
     }
 }
 
-
 /*
-We decided to not include unit tests from the UI, as our previous tests were just smoke tests 
+We decided to not include unit tests from the UI, as our previous tests were just smoke tests
     (i.e. doing nothing the Rust static code analyzer wasn't already doing).
-If we have conditional UI elements being displayed, perhaps this could change, 
+If we have conditional UI elements being displayed, perhaps this could change,
     but since we are already testing state manipulation in the `update.rs` file, they seemed redundant.
 */
