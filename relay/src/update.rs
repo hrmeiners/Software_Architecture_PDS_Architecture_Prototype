@@ -9,49 +9,71 @@ pub(crate) fn update(state: &mut State, message: Message) -> Task<Message> {
 
     #[allow(unreachable_patterns)]
     match message {
-        M::Update => {
-            state.elapsed_time += Duration::from_millis(10);
+        M::Update => handle_update(state),
+        M::WindowCloseRequest(id) => close_window(state, id),
+        M::ConnectionMessage => handle_connect_message(state),
+        M::ConnectIpc => ipc_connect_message(state),
+        M::DisconnectIpc => ipc_disconnect_message(state),
+        M::ConnectTcp => tcp_connect_message(state),
+        M::DisconnectTcp => tcp_disconnect_message(state),
+        // Toggle messages for GUI XML generator
+            M::AltitudeToggle(value) => toggle_state(&mut state.altitude_toggle, value),
+            M::AirspeedToggle(value) => toggle_state(&mut state.airspeed_toggle, value),
+            M::VerticalAirspeedToggle(value) => toggle_state(&mut state.vertical_airspeed_toggle, value),
+            M::HeadingToggle(value) => toggle_state(&mut state.heading_toggle, value),
+        M::CreateXMLFile => create_xml_file(state),
+        // Card Open/Close messages for GUI pop-up-card window
+            M::CardOpen => card_open(state),
+            M::CardClose => card_close(state),
+        M::TcpAddrFieldUpdate(addr) => tcp_addr_field_update(state, addr),
+        _ => Task::none(),
+    }
+}
 
-            // check for messages from IPC thread
-            if let Some(ipc_bichannel) = &state.ipc_bichannel {
-                for message in ipc_bichannel.received_messages() {
-                    match message {
-                        FromIpcThreadMessage::BatonData(data) => {
-                            state.tcp_bichannel.as_mut().map(|tcp_bichannel| {
-                                tcp_bichannel.send_to_child(ToTcpThreadMessage::Send(data.clone()))
-                            });
-                            state.latest_baton_send = Some(data);
-                            state.active_baton_connection = true;
-                        }
-                        FromIpcThreadMessage::BatonShutdown => {
-                            let _ = state.tcp_disconnect();
-                            state.active_baton_connection = false;
-                        }
-                        _ => (),
-                    }
+fn handle_update(state: &mut State) -> Task<Message> {
+    state.elapsed_time += Duration::from_millis(10);
+
+    // check for messages from IPC thread
+    if let Some(ipc_bichannel) = &state.ipc_bichannel {
+        for message in ipc_bichannel.received_messages() {
+            match message {
+                FromIpcThreadMessage::BatonData(data) => {
+                    state.tcp_bichannel.as_mut().map(|tcp_bichannel| {
+                        tcp_bichannel.send_to_child(ToTcpThreadMessage::Send(data.clone()))
+                    });
+                    state.latest_baton_send = Some(data);
+                    state.active_baton_connection = true;
                 }
-            }
-
-            // check for messages from TCP thread
-            if let Some(tcp_bichannel) = &state.tcp_bichannel {
-                for message in tcp_bichannel.received_messages() {
-                    match message {
-                        _ => (),
-                    }
+                FromIpcThreadMessage::BatonShutdown => {
+                    let _ = state.tcp_disconnect();
+                    state.active_baton_connection = false;
                 }
+                // _ => (),
             }
-
-            Task::none()
         }
-        M::WindowCloseRequest(id) => {
-            // pre-shutdown operations go here
-            if let Some(ref bichannel) = state.ipc_bichannel {
-                let _ = bichannel.killswitch_engage();
-            }
+    }
 
-            if let Some(ref bichannel) = state.tcp_bichannel {
-                let _ = bichannel.killswitch_engage();
+    // check for messages from TCP thread
+    if let Some(tcp_bichannel) = &state.tcp_bichannel {
+        for message in tcp_bichannel.received_messages() {
+            match message {
+                _ => (),
             }
+        }
+    }
+
+    Task::none()
+}
+
+fn close_window(state: &mut State, id: iced::window::Id) -> Task<Message> {
+    // pre-shutdown operations go here
+    if let Some(ref bichannel) = state.ipc_bichannel {
+        let _ = bichannel.killswitch_engage();
+    }
+
+    if let Some(ref bichannel) = state.tcp_bichannel {
+        let _ = bichannel.killswitch_engage();
+    }
 
     // delete socket file
     let socket_file_path = if cfg!(target_os = "macos") {
@@ -65,85 +87,55 @@ pub(crate) fn update(state: &mut State, message: Message) -> Task<Message> {
     };
     std::fs::remove_file(socket_file_path).unwrap();
 
-            // necessary to actually shut down the window, otherwise the close button will appear to not work
-            iced::window::close(id)
-        }
-        M::ConnectionMessage => {
-            if let Some(status) = state
-                .tcp_bichannel
-                .as_ref()
-                .and_then(|bichannel| bichannel.is_conn_to_endpoint().ok())
-            {
-                state.tcp_connected = status
-            } else {
-                state.tcp_connected = false
-            }
-            Task::none()
-        }
-        M::ConnectIpc => {
-            if let Err(e) = state.ipc_connect() {
-                state.log_event(format!("Error: {e:?}"));
-            };
-            Task::none()
-        }
-        M::DisconnectIpc => {
-            if let Err(e) = state.ipc_disconnect() {
-                state.log_event(format!("Error: {e:?}"));
-            };
-            Task::none()
-        }
-        M::ConnectTcp => {
-            let address = state.tcp_addr_field.clone();
-            if let Err(e) = state.tcp_connect(address) {
-                state.log_event(format!("Error: {e:?}"));
-            };
-            Task::none()
-        }
-        M::DisconnectTcp => {
-            if let Err(e) = state.tcp_disconnect() {
-                state.log_event(format!("Error: {e:?}"));
-            };
-            Task::none()
-        }
-        // Toggle messages for GUI XML generator
-        M::AltitudeToggle(value) => {
-            state.altitude_toggle = value;
-            Task::none()
-        }
-        M::AirspeedToggle(value) => {
-            state.airspeed_toggle = value;
-            Task::none()
-        }
-        M::VerticalAirspeedToggle(value) => {
-            state.vertical_airspeed_toggle = value;
-            Task::none()
-        }
-        M::HeadingToggle(value) => {
-            state.heading_toggle = value;
-            Task::none()
-        }
-        M::CreateXMLFile => create_xml_file(state),
-        // Card Open/Close messages for GUI pop-up-card window
-        M::CardOpen => {
-            state.card_open = true;
-            Task::none()
-        }
-        M::CardClose => {
-            state.card_open = false;
-            Task::none()
-        }
-        M::TcpAddrFieldUpdate(addr) => {
-            // Update the TCP address text input in the GUI
-            let is_chars_valid = addr.chars().all(|c| c.is_numeric() || c == '.' || c == ':');
-            let dot_count = addr.chars().filter(|&c| c == '.').count();
-            let colon_count = addr.chars().filter(|&c| c == ':').count();
-            if is_chars_valid && dot_count <= 3 && colon_count <= 1 {
-                state.tcp_addr_field = addr;
-            }
-            Task::none()
-        }
-        _ => Task::none(),
+    // necessary to actually shut down the window, otherwise the close button will appear to not work
+    iced::window::close(id)
+}
+
+fn handle_connect_message(state: &mut State) -> Task<Message> {
+    if let Some(status) = state
+        .tcp_bichannel
+        .as_ref()
+        .and_then(|bichannel| bichannel.is_conn_to_endpoint().ok())
+    {
+        state.tcp_connected = status
+    } else {
+        state.tcp_connected = false
     }
+    Task::none()
+}
+
+fn ipc_connect_message(state: &mut State) -> Task<Message> {
+    if let Err(e) = state.ipc_connect() {
+        state.log_event(format!("Error: {e:?}"));
+    };
+    Task::none()
+}
+
+fn ipc_disconnect_message(state: &mut State) -> Task<Message> {
+    if let Err(e) = state.ipc_disconnect() {
+        state.log_event(format!("Error: {e:?}"));
+    };
+    Task::none()
+}
+
+fn tcp_connect_message(state: &mut State) -> Task<Message> {
+    let address = state.tcp_addr_field.clone();
+    if let Err(e) = state.tcp_connect(address) {
+        state.log_event(format!("Error: {e:?}"));
+    };
+    Task::none()
+}
+
+fn tcp_disconnect_message(state: &mut State) -> Task<Message> {
+    if let Err(e) = state.tcp_disconnect() {
+        state.log_event(format!("Error: {e:?}"));
+    };
+    Task::none()
+}
+
+fn toggle_state(toggle: &mut bool, value: bool) -> Task<Message> {
+    *toggle = value;
+    Task::none()
 }
 
 // Creates a default XML file when a button is clicked in the GUI
@@ -233,6 +225,26 @@ fn create_xml_file(state: &mut State) -> Task<Message> {
     Task::none() // Return type that we need for the Update logic
 }
 
+fn card_open(state: &mut State) -> Task<Message> {
+    state.card_open = true;
+    Task::none()
+}
+
+fn card_close(state: &mut State) -> Task<Message> {
+    state.card_open = false;
+    Task::none()
+}
+
+fn tcp_addr_field_update(state: &mut State, addr: String) -> Task<Message> {
+    // Update the TCP address text input in the GUI
+    let is_chars_valid = addr.chars().all(|c| c.is_numeric() || c == '.' || c == ':');
+    let dot_count = addr.chars().filter(|&c| c == '.').count();
+    let colon_count = addr.chars().filter(|&c| c == ':').count();
+    if is_chars_valid && dot_count <= 3 && colon_count <= 1 {
+        state.tcp_addr_field = addr;
+    }
+    Task::none()
+}
 
 
 
